@@ -1,0 +1,22 @@
+name: CLI checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm test
+      - run: npm run test:integration
+      - run: bash -n pm2-manager.sh && for script in lib/*.sh; do bash -n "$script"; done
+      - run: shellcheck -x pm2-manager.sh lib/*.sh
+      - run: for script in lib/*.cjs templates/*.cjs; do node --check "$script"; done

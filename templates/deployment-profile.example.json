@@ -1,0 +1,16 @@
+{
+  "name": "example-app",
+  "path": "/home/exampleuser/apps/example-app",
+  "framework": "nextjs",
+  "mode": "standard",
+  "package_manager": "npm",
+  "install": "lockfile",
+  "build": true,
+  "host": "127.0.0.1",
+  "port": 3107,
+  "env_files": ["/home/exampleuser/secrets/example-app.env"],
+  "strategy": "release",
+  "health_path": "/",
+  "accepted_status": [200],
+  "memory": "512M"
+}

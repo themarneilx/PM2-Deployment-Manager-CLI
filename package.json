@@ -1,0 +1,14 @@
+{
+  "name": "pm2-deployment-manager-cli",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Development dependencies for isolated PM2 integration tests",
+  "scripts": {
+    "test": "python3 -m unittest discover -s tests -v",
+    "test:integration": "PM2_TEST_BIN=$PWD/node_modules/pm2/bin/pm2 python3 -m unittest discover -s tests -p test_integration.py -v"
+  },
+  "devDependencies": {
+    "pm2": "7.0.4",
+    "semver": "7.8.5"
+  }
+}
