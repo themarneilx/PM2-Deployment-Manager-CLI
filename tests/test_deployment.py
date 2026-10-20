@@ -18,7 +18,7 @@ class FakeManager(Manager):
     def __init__(self,root,**kw):
         super().__init__(root/'state',root/'pm2',yes=True,allow_root=True,**kw)
         self.apps=[]; self.calls=[]; self.next_id=0; self.bad_build=False; self.fail_health=False; self.interrupt=False
-    def runtime(self,p): return Path('/usr/bin/node'),Path('/tmp/fake-pm2'),Path('/usr/bin/npm'),os.environ['PATH']
+    def runtime(self,p): return process.executable('','node'),Path('/tmp/fake-pm2'),process.executable('','npm'),os.environ['PATH']
     def processes(self): return self.apps.copy()
     def pm2(self,args,allow_start=False,values=None):
         self.calls.append(list(args))
@@ -49,6 +49,15 @@ class DeploymentTests(unittest.TestCase):
         self.p=model.validate(profile(self.source,framework='node',entry='server.js',install='skip',build=False,health_interval=0))
         self.manager=FakeManager(self.root)
         self.port=patch.object(process,'port_available',return_value=True); self.port.start(); self.addCleanup(self.port.stop)
+
+    def test_fixture_uses_runtime_executables_from_path(self):
+        toolchain=self.root/'selected toolchain'; toolchain.mkdir()
+        for name in ['node','npm']:
+            executable=toolchain/name; executable.write_text('fixture'); executable.chmod(0o700)
+        with patch.object(process.shutil,'which',side_effect=lambda name:str(toolchain/name)):
+            node,_,npm,_=self.manager.runtime(self.p)
+        self.assertEqual(node,toolchain/'node')
+        self.assertEqual(npm,toolchain/'npm')
 
     def test_dry_run_and_declined_confirmation_create_no_state(self):
         self.manager.dry_run=True; self.manager.deploy(self.p)
