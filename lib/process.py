@@ -221,7 +221,9 @@ def port_available(host,port,allowed_pid=None):
     if allowed_pid and listener_owned(host,port,allowed_pid): return True
     family=socket.AF_INET6 if ':' in host else socket.AF_INET
     try:
-        with socket.socket(family,socket.SOCK_STREAM) as probe: probe.bind((host,port))
+        with socket.socket(family,socket.SOCK_STREAM) as probe:
+            probe.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+            probe.bind((host,port))
         return True
     except OSError: return False
 

@@ -72,3 +72,9 @@ class MaintenanceTests(unittest.TestCase):
         self.manager.fail_health=True
         with self.assertRaises(ValueError): self.manager.deploy(self.p,update=True)
         self.assertEqual(self.manager.apps[0]['pm2_env']['status'],'stopped')
+
+    def test_start_can_activate_definition_restored_without_autostart(self):
+        self.manager.deploy(self.p)
+        self.manager.apps[0]['pm2_env'].update(status='stopped',autostart=False)
+        self.manager.action('start','example-app')
+        self.assertEqual(self.manager.apps[0]['pm2_env']['status'],'online')

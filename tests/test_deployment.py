@@ -27,7 +27,7 @@ class FakeManager(Manager):
             text=Path(args[1]).read_text()
             data=json.loads(text.removeprefix('module.exports = ').rstrip().removesuffix(';'))
             for opts in data['apps']:
-                env=dict(pm_exec_path=str((Path(opts['cwd'])/opts['script']).resolve()),pm_cwd=opts['cwd'],args=opts.get('args',[]),exec_interpreter=opts.get('interpreter','node'),env=opts.get('env',{}),status='stopped' if opts.get('autostart') is False else 'online',restart_time=0)
+                env=dict(pm_exec_path=str((Path(opts['cwd'])/opts['script']).resolve()),pm_cwd=opts['cwd'],args=opts.get('args',[]),exec_interpreter=opts.get('interpreter','node'),env=opts.get('env',{}),status='stopped' if opts.get('autostart') is False else 'online',autostart=opts.get('autostart',True),restart_time=0)
                 self.apps.append(dict(name=opts['name'],pid=os.getpid(),pm_id=self.next_id,pm2_env=env,monit={'cpu':0,'memory':1000}))
                 self.next_id+=1
         return ''

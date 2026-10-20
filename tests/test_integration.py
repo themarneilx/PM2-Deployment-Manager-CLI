@@ -27,6 +27,14 @@ class RealPM2Tests(unittest.TestCase):
             (source/'server.js').write_text(server.replace('STATUS','200'))
             secret=source/'.env.production'; secret.write_text('TEST_TOKEN=integration-secret-never-print\n'); secret.chmod(0o600)
             p=model.validate(dict(name='example-app',path=str(source),framework='node',entry='server.js',install='skip',build=False,env_files=[str(secret)],port=port,health_interval=0,health_retries=5,node_path=str(node),pm2_path=str(pm2)))
+            original_health=manager.check_health
+            def diagnosed_health(settings,getter):
+                result=original_health(settings,getter)
+                if not result['healthy']:
+                    current=getter() or {}; env=current.get('pm2_env',{})
+                    print('Health failure diagnostics:',json.dumps(dict(result=result,status=env.get('status'),pid=current.get('pid'),restarts=env.get('restart_time'),autostart=env.get('autostart'))))
+                return result
+            manager.check_health=diagnosed_health
             try:
                 first=manager.deploy(p); first_pid=manager.app('example-app')['pid']
                 self.assertTrue(process.listener_owned('127.0.0.1',port,first_pid))
@@ -40,7 +48,7 @@ class RealPM2Tests(unittest.TestCase):
                 manager.pm2(['start',str(ecosystem),'--only','unmanaged-fixture'])
                 other_pid=manager.app('unmanaged-fixture')['pid']
                 (source/'server.js').write_text(server.replace('STATUS','503'))
-                with self.assertRaises(ValueError): manager.deploy(p,update=True)
+                with self.assertRaisesRegex(ValueError,'New release failed health:'): manager.deploy(p,update=True)
                 self.assertEqual(manager.metadata('example-app')['release'],first['release'])
                 self.assertTrue(manager.check_health(p,lambda:manager.app('example-app'))['healthy'])
                 self.assertEqual(manager.app('unmanaged-fixture')['pid'],other_pid)
@@ -50,7 +58,7 @@ class RealPM2Tests(unittest.TestCase):
                 manager.action('stop','example-app'); self.assertEqual(manager.app('example-app')['pm2_env']['status'],'stopped')
                 # A failed replacement must preserve a deliberately stopped prior app.
                 (source/'server.js').write_text(server.replace('STATUS','503'))
-                with self.assertRaises(ValueError): manager.deploy(p,update=True)
+                with self.assertRaisesRegex(ValueError,'New release failed health:'): manager.deploy(p,update=True)
                 self.assertEqual(manager.app('example-app')['pm2_env']['status'],'stopped')
                 manager.action('start','example-app'); manager.action('restart','example-app')
                 manager.save(); self.assertEqual((home/'dump.pm2').stat().st_mode & 0o777,0o600)

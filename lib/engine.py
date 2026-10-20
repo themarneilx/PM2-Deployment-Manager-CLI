@@ -368,11 +368,14 @@ class Manager(Maintenance):
                 if app: self.pm2(['stop',str(app['pm_id'])])
                 else: print('Already absent; no process changed.')
             else:
+                if app and not meta.get('adopted') and app.get('pm2_env',{}).get('autostart') is False:
+                    # A stopped rollback definition intentionally cannot autostart on plain restart.
+                    return self._swap(meta,meta,app)
                 if app: self.pm2(['restart',str(app['pm_id']),'--update-env'])
                 elif meta.get('adopted'): raise ValueError('An absent adopted app must be redeployed; the manager does not reconstruct its external secret environment')
                 else: self.pm2(['start',meta['ecosystem'],'--only',name],allow_start=True)
                 result=self.check_health(meta['profile'],lambda:self.app(name))
-                if not result['healthy']: raise ValueError('Process operation completed but health failed; inspect redacted logs')
+                if not result['healthy']: raise ValueError('Process operation completed but health failed: '+result.get('reason','unknown reason')+'; inspect redacted logs')
 
     def environment_values(self,meta):
         if meta.get('adopted'):

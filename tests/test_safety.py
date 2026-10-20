@@ -58,3 +58,14 @@ class SafetyTests(unittest.TestCase):
             p=profile(root,package_manager='pnpm')
             with patch.object(process.subprocess,'run',return_value=result),self.assertRaises(ValueError):
                 process.check_manager(p,root,Path('/pnpm'),{})
+
+    def test_recently_closed_node_style_listener_is_available(self):
+        import socket
+        with socket.socket() as listener:
+            listener.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+            listener.bind(('127.0.0.1',0)); listener.listen()
+            port=listener.getsockname()[1]
+            with socket.create_connection(('127.0.0.1',port)) as client:
+                accepted,_=listener.accept(); accepted.close()
+                self.assertEqual(client.recv(1),b'')
+        self.assertTrue(process.port_available('127.0.0.1',port))
